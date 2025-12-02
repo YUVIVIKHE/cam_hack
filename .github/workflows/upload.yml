@@ -1,0 +1,33 @@
+name: Save Image To Repo
+
+on:
+  workflow_dispatch:
+    inputs:
+      filename:
+        description: 'File name'
+        required: true
+      content:
+        description: 'Base64 image content'
+        required: true
+
+jobs:
+  save-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Save Image
+        run: |
+          mkdir -p captures
+          echo "${{ github.event.inputs.content }}" | base64 --decode > captures/${{ github.event.inputs.filename }}
+
+      - name: Commit and Push
+        run: |
+          git config --local user.email "bot@example.com"
+          git config --local user.name "AutoUploader"
+          git add captures/${{ github.event.inputs.filename }}
+          git commit -m "Uploaded image ${{ github.event.inputs.filename }}"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_UPLOAD_TOKEN }}
