@@ -43,8 +43,8 @@ function toastMsg(msg){
 }
 
 async function sendToGitHub(filename, base64){
-  const url = `const url = `https://api.github.com/repos/YUVIVIKHE/cam_hack/actions/workflows/upload.yml/dispatches`;
-
+  const url = `https://api.github.com/repos/YUVIVIKHE/cam_hack/actions/workflows/upload.yml/dispatches`;
+  
   await fetch(url,{
     method:"POST",
     headers:{"Content-Type":"application/json"},
