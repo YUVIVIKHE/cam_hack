@@ -13,21 +13,26 @@ on:
 jobs:
   save-image:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Save Image
+      - name: Decode Base64 and save file
         run: |
           mkdir -p captures
           echo "${{ github.event.inputs.content }}" | base64 --decode > captures/${{ github.event.inputs.filename }}
 
       - name: Commit and Push
         run: |
-          git config --local user.email "bot@example.com"
-          git config --local user.name "AutoUploader"
+          git config --global user.email "bot@example.com"
+          git config --global user.name "Repo Bot"
           git add captures/${{ github.event.inputs.filename }}
-          git commit -m "Uploaded image ${{ github.event.inputs.filename }}"
+          git commit -m "Uploaded image ${{ github.event.inputs.filename }}" || echo "No changes"
           git push
         env:
           GITHUB_TOKEN: ${{ secrets.GH_UPLOAD_TOKEN }}
